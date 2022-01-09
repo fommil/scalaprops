@@ -3,33 +3,6 @@ import sbtrelease._
 import ReleaseStateTransformations._
 import sbtcrossproject.CrossProject
 
-lazy val disableScala3 = Def.settings(
-  libraryDependencies := {
-    if (scalaBinaryVersion.value == "3") {
-      Nil
-    } else {
-      libraryDependencies.value
-    }
-  },
-  Seq(Compile, Test).map { x =>
-    (x / sources) := {
-      if (scalaBinaryVersion.value == "3") {
-        Nil
-      } else {
-        (x / sources).value
-      }
-    }
-  },
-  Test / test := {
-    if (scalaBinaryVersion.value == "3") {
-      ()
-    } else {
-      (Test / test).value
-    }
-  },
-  publish / skip := scalaBinaryVersion.value == "3",
-)
-
 val isScala3 = Def.setting(
   CrossVersion.partialVersion(scalaVersion.value).exists(_._1 == 3)
 )
@@ -146,14 +119,11 @@ lazy val core = module("core")
 lazy val scalaz = module("scalaz")
   .settings(
     name := scalazName,
-    libraryDependencies += "org.scalaz" %%% "scalaz-core" % "7.3.5" cross CrossVersion.for3Use2_13,
+    libraryDependencies += "org.scalaz" %%% "scalaz-core" % "7.4.0-M10",
   )
   .dependsOn(
     core,
     scalaprops % "test"
-  )
-  .nativeSettings(
-    disableScala3,
   )
 
 lazy val scalaprops = module(scalapropsName)
@@ -194,15 +164,11 @@ val unusedWarnings = Def.setting {
     .condOpt(CrossVersion.partialVersion(scalaVersion.value)) {
       case Some((2, v)) if v >= 12 =>
         Seq("-Ywarn-unused:imports,locals")
-      case Some((2, 11)) =>
-        Seq("-Ywarn-unused", "-Ywarn-unused-import")
     }
     .toList
     .flatten
 }
 
-val Scala211 = "2.11.12"
-val Scala212 = "2.12.15"
 val Scala213 = "2.13.7"
 val Scala3 = "3.1.0"
 
@@ -221,10 +187,8 @@ val commonSettings = Def.settings(
   _root_.scalaprops.ScalapropsPlugin.autoImport.scalapropsCoreSettings,
   (Compile / unmanagedResources) += (LocalRootProject / baseDirectory).value / "LICENSE.txt",
   publishTo := sonatypePublishToBundle.value,
-  scalaVersion := Scala212,
-  crossScalaVersions := Scala212 :: Scala211 :: Scala213 :: Scala3 :: Nil,
-  addCommandAlias("SetScala2_11", s"++ ${Scala211}! -v"),
-  addCommandAlias("SetScala2_12", s"++ ${Scala212}! -v"),
+  scalaVersion := Scala213,
+  crossScalaVersions := Scala213 :: Scala3 :: Nil,
   addCommandAlias("SetScala2_13", s"++ ${Scala213}! -v"),
   addCommandAlias("SetScala3", s"++ ${Scala3}! -v"),
   organization := "com.github.scalaprops",
